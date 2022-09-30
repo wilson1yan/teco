@@ -56,8 +56,13 @@ class TECO(nn.Module):
                                          padding='VALID', use_bias=False, dtype=self.dtype)
 
         # Dynamics Prior
-        self.z_git = MaskGit(shape=self.z_shape, vocab_size=self.codebook.n_codes,
-                             **config.z_git, dtype=self.dtype)
+        self.z_git = nn.vmap(
+                MaskGit,
+                in_axes=(1, 1, None), out_axes=1,
+                variable_axes={'params': None},
+                split_rngs={'params': False, 'sample': True, 'dropout': True}
+        )(shape=self.z_shape, vocab_size=self.codebook.n_codes,
+          **config.z_git, dtype=self.dtype)
 
         # Decoder
         out_dim = self.vqvae.n_codes
@@ -167,7 +172,7 @@ class TECO(nn.Module):
         labels = labels[:, idxs]
 
         # Dynamics Prior loss
-        z_logits, z_labels, z_mask = jax.vmap(self.z_git, (1, 1, None))(z_codes, deter, deterministic)
+        z_logits, z_labels, z_mask = self.z_git(z_codes, deter, deterministic)
         trans_loss = optax.softmax_cross_entropy(z_logits, z_labels)
         trans_loss = (trans_loss * z_mask).sum() / z_mask.sum()
         trans_loss = trans_loss * np.prod(self.z_shape)

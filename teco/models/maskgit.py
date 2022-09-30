@@ -71,7 +71,6 @@ class MaskGit(nn.Module):
             **self.tfm_kwargs,
             shape=self.shape,
             pos_embed_type='broadcast',
-            fc_in_mode='out',
             dtype=self.dtype
         )
         self.mlm = MlmLayer(self.vocab_dim, self.dtype)
@@ -80,7 +79,7 @@ class MaskGit(nn.Module):
         token_embed = jnp.asarray(self.token_embed, self.dtype)
         x = token_embed[(x,)]
  
-        x = self.net(x, cond=dict(cat=cond), deterministic=deterministic)
+        x = self.net(x, cond=cond, deterministic=deterministic)
         logits = self.mlm(x, self.token_embed[:self.vocab_size])
         return logits
         
@@ -92,7 +91,7 @@ class MaskGit(nn.Module):
             for mask in masks:
                 samples = jnp.where(mask, MASK_ID, samples)
                 logits = self._step(samples, cond=cond, deterministic=True)
-                s = topk_sample(self.make_rng('sample'), logits, top_k=1024, top_p=0.8)
+                s = topk_sample(self.make_rng('sample'), logits)
                 samples = jnp.where(mask, s, samples)
             return samples
         

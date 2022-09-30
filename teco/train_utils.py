@@ -19,18 +19,18 @@ def seed_all(seed):
 
 
 def get_first_device(x):
-    x = jax.tree_map(lambda a: a[0], x)
+    x = jax.tree_util.tree_map(lambda a: a[0], x)
     return jax.device_get(x)
 
 
 def get_all_devices(x):
-    x = jax.tree_map(lambda a: jnp.reshape(a, (-1,) + a.shape[2:]), x)
+    x = jax.tree_util.tree_map(lambda a: jnp.reshape(a, (-1,) + a.shape[2:]), x)
     return jax.device_get(x)
  
 
 def print_model_size(params, name=''):
-    model_params_size = jax.tree_map(lambda x: x.size, params)
-    total_params_size = sum(jax.tree_flatten(model_params_size)[0])
+    model_params_size = jax.tree_util.tree_map(lambda x: x.size, params)
+    total_params_size = sum(jax.tree_util.tree_flatten(model_params_size)[0])
     print('model parameter count:', total_params_size)
 
 

@@ -1,5 +1,6 @@
 import jax.numpy as jnp
 
+from .sample import sample
 from .vqgan import VQGAN
 from .teco import TECO
 
@@ -82,7 +83,3 @@ def get_model(config, need_encode=None, **kwargs):
 
     return model
 
-
-def get_sample(config):
-    from .teco import sample
-    return sample

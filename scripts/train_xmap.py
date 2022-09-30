@@ -152,11 +152,6 @@ def train_step(batch, state, rng):
         grads=grads,
     )
 
-    grad_norm = jnp.linalg.norm(
-        jax.tree_leaves(jax.tree_map(jnp.linalg.norm, grads))
-    )
-    grad_norm = jax.lax.pmean(grad_norm, 'model')
-    out['grad_norm'] = grad_norm
     return new_state, out, new_rng
 
 
@@ -164,7 +159,7 @@ def train_step(batch, state, rng):
 def train(iteration, state_spec, state, train_loader, schedule_fn, rngs):
     progress = ProgressMeter(
         config.total_steps,
-        ['time', 'data'] + model_shard.metrics + ['grad_norm']
+        ['time', 'data'] + model_shard.metrics
     )
 
     p_train_step = xmap(
@@ -182,7 +177,6 @@ def train(iteration, state_spec, state, train_loader, schedule_fn, rngs):
         state, return_dict, rngs = p_train_step(batch, state, rngs)
 
         metrics = {k: return_dict[k] for k in model_shard.metrics}
-        metrics['grad_norm'] = return_dict['grad_norm']
         metrics = {k: v.astype(jnp.float32) for k, v in metrics.items()}
         progress.update(n=batch_size, **{k: v for k, v in metrics.items()})
 

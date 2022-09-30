@@ -19,10 +19,10 @@ from teco.datasets import Data
 from teco.train_utils import init_model_state, \
         get_first_device, ProgressMeter, seed_all
 from teco.utils import flatten, add_border, save_video_grid
-from teco.models import get_model, get_sample
+from teco.models import get_model, sample
 
 
-GCS_LOG_DIR = 'TODO'
+GCS_LOG_DIR = 'gs://wilson_smae/logs/hier_video'
 
 
 def main():
@@ -123,14 +123,10 @@ def train_step(batch, state, rng):
         loss_fn, has_aux=True)(state.params)
     out = aux[1]
     grads = jax.lax.pmean(grads, axis_name='batch')
-    grad_norm = jnp.linalg.norm(
-        jax.tree_leaves(jax.tree_map(jnp.linalg.norm, grads))
-    )
     new_state = state.apply_gradients(
         grads=grads,
     )
 
-    out['grad_norm'] = grad_norm
     return new_state, out, new_rng
 
 
@@ -138,7 +134,7 @@ def train_step(batch, state, rng):
 def train(iteration, model, state, train_loader, schedule_fn, rngs):
     progress = ProgressMeter(
         config.total_steps,
-        ['time', 'data'] + model.metrics + ['grad_norm']
+        ['time', 'data'] + model.metrics
     )
 
     p_train_step = jax.pmap(train_step, axis_name='batch')
@@ -152,7 +148,6 @@ def train(iteration, model, state, train_loader, schedule_fn, rngs):
         state, return_dict, rngs = p_train_step(batch=batch, state=state, rng=rngs)
 
         metrics = {k: return_dict[k].mean() for k in model.metrics}
-        metrics['grad_norm'] = return_dict['grad_norm'].mean()
         metrics = {k: v.astype(jnp.float32) for k, v in metrics.items()}
         progress.update(n=batch_size, **{k: v for k, v in metrics.items()})
 
@@ -179,8 +174,7 @@ def train(iteration, model, state, train_loader, schedule_fn, rngs):
 def visualize(model, iteration, state, test_loader):
     batch = next(test_loader)
 
-    sample = get_sample(config)
-    predictions, real = sample(model, state, batch['video'], batch['actions'], log_output=True)
+    predictions, real = sample(model, state, batch['video'], batch['actions'])
     predictions, real = jax.device_get(predictions), jax.device_get(real)
     predictions, real = predictions * 0.5 + 0.5, real * 0.5 + 0.5
     predictions = flatten(predictions, 0, 2)

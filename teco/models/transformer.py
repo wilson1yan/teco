@@ -74,7 +74,6 @@ class Transformer(nn.Module):
                 mlp_dim=self.mlp_dim,
                 dropout=self.dropout,
                 attention_dropout=self.attention_dropout,
-                attention_type=self.attention_type,
                 shape=self.shape,
                 dtype=self.dtype
             )(x, mask=mask, deterministic=deterministic)
