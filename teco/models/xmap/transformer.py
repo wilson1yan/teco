@@ -252,7 +252,6 @@ class MultiHeadAttentionShard(nn.Module):
     def __call__(self, inputs_q, inputs_kv, mask=None, deterministic=False):
         assert self.num_heads % self.num_shards == 0
         num_heads_per_shard = self.num_heads // self.num_shards
-        max_heads_processed = self.max_heads_processed or num_heads_per_shard
 
         projection = partial(
             nn.DenseGeneral,
