@@ -1,0 +1,79 @@
+seed: 1
+download: true
+cache: true
+
+# Training
+batch_size: 32
+num_workers: 4
+lr: 0.0001
+lr_schedule: "cosine"
+weight_decay: 0.00001
+total_steps: 1000000
+warmup_steps: 5000
+test_interval: 10000
+eval_interval: 100000
+viz_interval: 100000
+log_interval: 100
+
+# Data
+data_path: "encoded_h5py_dataset/habitat_l300"
+eval_seq_len: 300
+seq_len: 300
+image_size: 128
+channels: 3
+
+num_shards: 2
+rng_keys: ["dropout", "sample"]
+batch_keys: ["video", "actions"]
+
+# Model
+model: "teco"
+vqvae_ckpt: "/home/wilson/logs/hier_video/habitat_8192_jax"
+
+encoder: # encoder / decoder are mirrored, with decoder depths reversed
+  depths: [256, 512] # 16x16 -> 8x8
+  blocks: 4
+
+decoder: # encoder / decoder are mirrored, with decoder depths reversed
+  depths: [256, 512] # 16x16 -> 8x8
+  blocks: 8
+
+z_ds: 4 # 8x8 -> 2x2
+z_tfm_kwargs:
+  embed_dim: 1024
+  mlp_dim: 4096
+  num_heads: 16
+  num_layers: 8
+  dropout: 0.
+  attention_dropout: 0.
+
+z_git:
+  vocab_dim: 256
+  mask_schedule: "cosine"
+  tfm_kwargs:
+    embed_dim: 1024
+    mlp_dim: 4096
+    num_heads: 16
+    num_layers: 16
+    dropout: 0.
+    attention_dropout: 0.
+
+embedding_dim: 256
+codebook:
+  n_codes: 2048
+  proj_dim: 32
+
+n_cond: 1
+drop_loss_rate: 0.1
+
+# Actions
+use_actions: true
+action_dim: 6
+action_embed_dim: 16
+dropout_actions: true
+
+# Sampling
+T_draft: 8
+T_revise: 8
+M: 2
+open_loop_ctx: 36
