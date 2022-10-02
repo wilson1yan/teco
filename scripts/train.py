@@ -22,7 +22,7 @@ from teco.utils import flatten, add_border, save_video_grid
 from teco.models import get_model, sample
 
 
-GCS_LOG_DIR = 'gs://wilson_smae/logs/hier_video'
+GCS_LOG_DIR = 'gs://wilson_smae/logs/hier_video/'
 
 
 def main():
@@ -36,7 +36,7 @@ def main():
     if hasattr(config, 'vqvae_ckpt'):
         gcs_path = osp.join(GCS_LOG_DIR, osp.basename(config.vqvae_ckpt))
         fs.get(gcs_path, config.vqvae_ckpt, recursive=True)
-    
+
     # Check if need to load previous checkpoint
     gcs_path = osp.join(GCS_LOG_DIR, config.run_id)
 
@@ -85,7 +85,7 @@ def main():
             if is_master_process:
                 state_ = jax_utils.unreplicate(state)
                 save_path = checkpoints.save_checkpoint(ckpt_dir, state_, state_.step, keep=1)
-        
+
                 if args.sync_freq and os.environ.get('DEBUG') != '1':
                     gcs_path = osp.join(GCS_LOG_DIR, osp.basename(config.output_dir))
                     if fs.exists(gcs_path):
