@@ -3,6 +3,7 @@ import jax.numpy as jnp
 from .sample import sample
 from .vqgan import VQGAN
 from .teco import TECO
+from .xmap.teco import TECOShard
 
 
 def load_vqvae(ckpt_path, need_encode=True):
@@ -65,7 +66,7 @@ def load_ckpt(ckpt_path, training=False, replicate=True, return_config=False,
         return model, state
 
 
-def get_model(config, need_encode=None, **kwargs):
+def get_model(config, need_encode=None, xmap=False, **kwargs):
     if config.model == 'teco':
         if need_encode is None:
             need_encode = not 'encoded' in config.data_path
@@ -78,8 +79,10 @@ def get_model(config, need_encode=None, **kwargs):
         model = VQGAN(config, **kwargs)
     elif config.model == 'teco':
         model = TECO(config, **kwargs)
+        if xmap:
+            model_shard = TECOShard(config, **kwargs)
     else:
         raise ValueError(f'Invalid model: {config.model}')
 
-    return model
+    return (model, model_shard) if xmap else model
 

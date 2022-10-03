@@ -21,16 +21,15 @@ from teco.models.xmap.train_utils import create_xmap_train_state_spec, \
 from teco.train_utils import init_model_state, \
         get_first_device, ProgressMeter, seed_all
 from teco.utils import flatten, add_border, save_video_grid
-from teco.models.xmap import get_model, get_sample
+from teco.models import get_model, sample
 from teco.models.xmap.mesh import default_mesh
 
 
-GCS_LOG_DIR = 'TODO'
+GCS_LOG_DIR = 'gs://wilson_smae/logs/hier_video/'
 
 
 def main():
-    global model
-    global model_shard
+    global model, model_shard
     rng = random.PRNGKey(config.seed)
     rng, init_rng = random.split(rng)
     seed_all(config.seed)
@@ -40,9 +39,6 @@ def main():
     if hasattr(config, 'vqvae_ckpt'):
         gcs_path = osp.join(GCS_LOG_DIR, osp.basename(config.vqvae_ckpt))
         fs.get(gcs_path, config.vqvae_ckpt, recursive=True)
-    if hasattr(config, 'ae_ckpt'):
-        gcs_path = osp.join(GCS_LOG_DIR, osp.basename(config.ae_ckpt))
-        fs.get(gcs_path, config.ae_ckpt, recursive=True)
 
     # Check if need to load previous checkpoint
     gcs_path = osp.join(GCS_LOG_DIR, config.run_id)
@@ -73,7 +69,7 @@ def main():
 
     batch = next(train_loader)
     batch = get_first_device(batch)
-    model, model_shard = get_model(config)
+    model, model_shard = get_model(config, xmap=True)
     state, schedule_fn = init_model_state(init_rng, model, batch, config)
     if config.ckpt is not None:
         state = checkpoints.restore_checkpoint(osp.join(config.ckpt, 'checkpoints'), state)
@@ -86,7 +82,6 @@ def main():
     state = jax.device_get(state)
     state_spec = create_xmap_train_state_spec(model_shard, state)
 
-    print('Moving params to devices')
     move_params = xmap(
         lambda state: state, in_axes=(state_spec,), out_axes=state_spec,
         axis_resources={'data': 'dp', 'model': 'mp'}
@@ -96,9 +91,6 @@ def main():
 
     ckpt_dir = osp.join(config.output_dir, 'checkpoints')
 
-    server = jax.profiler.start_server(9999)
-
-    print('Starting training...')
     rngs = random.split(rng, max(1, jax.local_device_count() // config.num_shards))
     while iteration <= config.total_steps:
         iteration, state, rngs = train(iteration, state_spec, state, train_loader,
@@ -203,7 +195,6 @@ def train(iteration, state_spec, state, train_loader, schedule_fn, rngs):
 def visualize(model, iteration, state_spec, state, test_loader):
     batch = next(test_loader)
 
-    sample = get_sample(config)
     predictions, real = sample(model, state, batch['video'], batch['actions'],
                                log_output=True, state_spec=state_spec)
     predictions, real = jax.device_get(predictions), jax.device_get(real)
