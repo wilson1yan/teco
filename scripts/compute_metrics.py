@@ -1,30 +1,23 @@
 import sys
-import time
-import jax
-import jax.numpy as jnp
 import numpy as np
 from tqdm import tqdm
 import glob
 import os.path as osp
+
 from teco.metrics import get_ssim, get_psnr, get_lpips
 
 BATCH_SIZE = 256
 
-start = time.time()
 path = sys.argv[1]
-
+if path.endswith('/'):
+    path = path[:-1]
 open_loop_ctx = int(osp.basename(path).split('_')[-1])
-print('open loop ctx', open_loop_ctx)
 
-# assumes each file is batch 64
 files = glob.glob(osp.join(path, '*.npz'))
 files.sort(key=lambda x: int(osp.basename(x).split('_')[-1].split('.')[0]))
 print(f'Found {len(files)} file:', files)
 
-
 SIZE = np.load(files[0])['real'].shape[0]
-print('Size per file:', SIZE)
-
 
 def read(files):
     scale = np.array(255., dtype=np.float32)
@@ -48,7 +41,6 @@ for j in range(0, len(files), BATCH_SIZE // SIZE):
         ls.append(lpips_fn(r_i, f_i).mean())
         pbar.update(r_i.shape[0])
     psnrs.append(np.mean(ps))
-    print(psnrs)
     ssims.append(np.mean(ss))
     lpips.append(np.mean(ls))
 

@@ -7,9 +7,7 @@ import time
 import multiprocessing as mp
 
 from teco.train_utils import seed_all
-from teco.utils import flatten
-from teco.models import load_ckpt, sample
-from teco.utils import flatten
+from teco.models.xmap import get_sample, load_ckpt
 from teco.data_pyt import Data
 
 
@@ -19,8 +17,6 @@ def worker(queue):
         if data is None:
             break
         i, s, r = data
-        print(s.shape, r.shape)
-        start = time.time()
         s = s.reshape(-1, *s.shape[2:])
         s = s * 0.5 + 0.5
         s = (s * 255).astype(np.uint8)
@@ -29,8 +25,8 @@ def worker(queue):
         r = (r * 255).astype(np.uint8)
 
         if args.no_context:
-            s = s[: args.open_loop_ctx:]
-            r = r[:, args.open_loop_ctx:]
+            s = s[: args.open_loop_ctx]
+            r = r[:, args.open_loop_ctx]
         else:
             s[:, :args.open_loop_ctx] = r[:, :args.open_loop_ctx]
 
@@ -42,14 +38,16 @@ def worker(queue):
         np.savez_compressed(osp.join(folder, f'data_{i}.npz'), real=r, fake=s)
 
 
-MAX_BATCH = 64
+MAX_BATCH = 16
 def main(args):
-    global MAX_BATCH
     seed_all(args.seed)
+    global MAX_BATCH
+    MAX_BATCH = min(MAX_BATCH, args.batch_size)
 
     kwargs = dict()
     if args.batch_size is not None:
-        kwargs['batch_size'] = args.batch_size
+        #kwargs['batch_size'] = args.batch_size
+        kwargs['batch_size'] = MAX_BATCH
     if args.open_loop_ctx is not None:
         kwargs['open_loop_ctx'] = args.open_loop_ctx
     
@@ -69,30 +67,36 @@ def main(args):
     config.eval_seq_len = args.seq_len
     data = Data(config)
     loader = data.test_dataloader()
-    batch = next(iter(loader))
+    loader = iter(loader)
     config.seq_len = old_seq_len
+
+    sample = get_sample(config)
 
     queue = mp.Queue()
     procs = [mp.Process(target=worker, args=(queue,)) for _ in range(1)]
     [p.start() for p in procs]
     
     start = time.time()
-    batch = {k: np.reshape(v.numpy(), (jax.local_device_count(), -1, *v.shape[1:])) 
-             for k, v in batch.items()}
-    print(batch['video'].shape)
-    if 'actions' not in batch:
-        batch['actions'] = None
-    MAX_BATCH = min(MAX_BATCH, args.batch_size)
     B = MAX_BATCH // jax.local_device_count()
     idx = 0
+    assert args.n_repeat == 1
     for _ in range(args.n_repeat):
         for i in range(0, args.batch_size // jax.local_device_count(), B):
-            v_in = batch['video'][:, i:i+B]
-            act_in = batch['actions'][:, i:i+B] if batch['actions'] is not None else None
+            batch = next(loader)
+            batch = {k: np.reshape(v.numpy(), (jax.local_device_count(), -1, *v.shape[1:]))
+                     for k, v in batch.items()}
+            print(batch['video'].shape)
+            if 'actions' not in batch:
+                batch['actions'] = None
+
+            #v_in = batch['video'][:, i:i+B]
+            #act_in = batch['actions'][:, i:i+B] if batch['actions'] is not None else None
+            v_in = batch['video']
+            act_in = batch['actions'] if batch['actions'] is not None else None
 
             if config.use_actions and not args.include_actions:
                 act_in = np.full_like(act_in, -1)
-            s,r  = sample(model, state, v_in, act_in, seed=args.seed)
+            s,r  = sample(model, state, v_in, act_in, seed=args.seed, log_output=True)
             queue.put((idx, s, r))
             idx += 1
     [queue.put(None) for _ in range(4)]
