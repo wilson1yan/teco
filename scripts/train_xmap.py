@@ -196,7 +196,7 @@ def visualize(model, iteration, state_spec, state, test_loader):
     batch = next(test_loader)
 
     predictions, real = sample(model, state, batch['video'], batch['actions'],
-                               log_output=True, state_spec=state_spec)
+                               state_spec=state_spec)
     predictions, real = jax.device_get(predictions), jax.device_get(real)
     predictions, real = predictions * 0.5 + 0.5, real * 0.5 + 0.5
     predictions = flatten(predictions, 0, 2)

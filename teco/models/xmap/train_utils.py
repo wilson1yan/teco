@@ -7,7 +7,6 @@ class TrainState(train_state.TrainState):
 
 
 def create_xmap_train_state_spec(model, train_state):
-    assert model.config.clip_grad_norm is None
     spec = model.model_spec.spec()
 
     return TrainState(

@@ -64,7 +64,7 @@ codebook:
   proj_dim: 32
 
 n_cond: 1
-drop_loss_rate: 0.1
+drop_loss_rate: 0.9
 
 # Actions
 use_actions: true
