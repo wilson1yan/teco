@@ -43,7 +43,7 @@ def load_ckpt(ckpt_path, training=False, replicate=True, return_config=False,
             print('did not find', k, 'setting default to', v)
             setattr(config, k, v)
     
-    model = get_model(config, training=training, need_encode=need_encode)
+    model = get_model(config, need_encode=need_encode)
     state = checkpoints.restore_checkpoint(osp.join(ckpt_path, 'checkpoints'), None)
     state = TrainState(
         step=state['step'],

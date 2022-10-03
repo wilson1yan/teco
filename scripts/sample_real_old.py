@@ -1,5 +1,3 @@
-#import tensorflow as tf
-#tf.config.experimental.set_visible_devices([], "GPU")
 import argparse
 import numpy as np
 import os.path as osp
@@ -10,7 +8,7 @@ import multiprocessing as mp
 
 from teco.train_utils import seed_all
 from teco.utils import flatten
-from teco.models import load_ckpt, get_sample
+from teco.models import load_ckpt, sample
 from teco.utils import flatten
 from teco.data_pyt import Data
 
@@ -74,8 +72,6 @@ def main(args):
     batch = next(iter(loader))
     config.seq_len = old_seq_len
 
-    sample = get_sample(config)
-
     queue = mp.Queue()
     procs = [mp.Process(target=worker, args=(queue,)) for _ in range(1)]
     [p.start() for p in procs]
@@ -96,7 +92,7 @@ def main(args):
 
             if config.use_actions and not args.include_actions:
                 act_in = np.full_like(act_in, -1)
-            s,r  = sample(model, state, v_in, act_in, seed=args.seed, log_output=True)
+            s,r  = sample(model, state, v_in, act_in, seed=args.seed)
             queue.put((idx, s, r))
             idx += 1
     [queue.put(None) for _ in range(4)]
