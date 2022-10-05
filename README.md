@@ -33,13 +33,19 @@ We offer the following datasets (note that you will require 2x the dataset size 
 * `dmlab_encoded.sh`: DMLab dataset pre-encoded using the VQ-GAN - 5.4GB
 * `minecraft.sh`: Minecraft dataset with 200k trajectories of 300 128 x 128 frames - 210GB
 * `minecraft_encoded.sh`: Minecraft dataset pre-encoded using the VQ-GAN - 27GB
-* `habitat.sh`: Habitat dataset with 200k trajectories of 300 128 x 128 frames - 71GB
-* `habitat_encoded.sh`: Habitat dataset pre-encoded using the VQ-GAN - 35GB
 * `kinetics600_encoded.sh`: Kinetics-600 pre-encoded using the VQ-GAN - 42GB
+
+Habitat download links coming soon.
 
 You can collect your own data through the following links for [DMLab](https://github.com/wilson1yan/lab), [Minecraft](https://github.com/wilson1yan/collect-minecraft), and [Habitat](https://github.com/wilson1yan/collect-habitat). For Habitat, you will need to collect the 3D scenes yourself.
 
 ## Pretrained VQ-GANs
+
+[Coming Soon]
+
+## Pretrained TECO
+
+[Coming Soon]
 
 ## Training
 For standard training, run:
