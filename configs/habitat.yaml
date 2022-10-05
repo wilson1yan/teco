@@ -9,8 +9,7 @@ lr_schedule: "cosine"
 weight_decay: 0.00001
 total_steps: 1000000
 warmup_steps: 5000
-test_interval: 10000
-eval_interval: 100000
+save_interval: 50000
 viz_interval: 100000
 log_interval: 100
 
