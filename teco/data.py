@@ -9,11 +9,6 @@ import tensorflow_io as tfio
 from tensorflow.python.lib.io import file_io
 import io
 
-from . import encoded_h5py_dataset
-
-
-GCS_PATH = 'gs://wilson_smae/datasets'
-
 
 def get_size(config, train):
     split = 'train' if train else 'test'
@@ -80,8 +75,9 @@ class Data:
             self.train_size = get_size(config, train=True)
             self.test_size = get_size(config, train=False)
         else:
-            dataset_builder = tfds.builder(self.config.data_path,
-                    data_dir=GCS_PATH if config.download else None)
+            dataset_builder = tfds.builder(
+                osp.basename(self.config.data_path),
+                data_dir=osp.dirname(config.data_path))
             dataset_builder.download_and_prepare()
 
             self.train_size = dataset_builder.info.splits['train'].num_examples
@@ -116,7 +112,7 @@ class Data:
         split_name = 'train' if train else 'test'
 
         if osp.exists(self.config.data_path) or self.config.data_path.startswith('gs://'):
-            dataset = load_video(self.config, split, num_ds_shards, ds_shard_id)
+            dataset = load_video(self.config, split_name, num_ds_shards, ds_shard_id)
         else:
             seq_len = self.config.seq_len
             def process(features):
@@ -128,8 +124,9 @@ class Data:
                 actions = tf.identity(actions[start_idx:start_idx + seq_len])
                 return dict(video=video, actions=actions)
 
-            dataset_builder = tfds.builder(self.config.data_path,
-                    data_dir=GCS_PATH if self.config.download else None)
+            dataset_builder = tfds.builder(
+                osp.basename(self.config.data_path),
+                data_dir=osp.dirname(self.config.data_path))
             dataset_builder.download_and_prepare()
             num_examples = dataset_builder.info.splits[split_name].num_examples
             split_size = num_examples // num_ds_shards

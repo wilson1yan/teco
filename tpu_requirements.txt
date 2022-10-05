@@ -1,6 +1,5 @@
 tqdm
 ipdb
-h5py
 pyyaml
 moviepy
 wandb

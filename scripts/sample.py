@@ -6,7 +6,7 @@ import jax
 
 from teco.train_utils import seed_all
 from teco.models import load_ckpt, sample
-from teco.datasets import Data
+from teco.data import Data
 
 
 def save(i, s, r, folder):

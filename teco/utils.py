@@ -6,7 +6,6 @@ import jax
 import jax.numpy as jnp
 
 
-
 def topk_sample(rng, logits, top_k=None):
     if top_k is not None:
         top_k = min(top_k, logits.shape[-1])

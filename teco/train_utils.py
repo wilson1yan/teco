@@ -3,7 +3,6 @@ from collections import OrderedDict
 import random
 import numpy as np
 import jax
-import jax.numpy as jnp
 from flax.training import train_state
 from flax.core.frozen_dict import freeze
 import optax
@@ -23,22 +22,10 @@ def get_first_device(x):
     return jax.device_get(x)
 
 
-def get_all_devices(x):
-    x = jax.tree_util.tree_map(lambda a: jnp.reshape(a, (-1,) + a.shape[2:]), x)
-    return jax.device_get(x)
- 
-
 def print_model_size(params, name=''):
     model_params_size = jax.tree_util.tree_map(lambda x: x.size, params)
     total_params_size = sum(jax.tree_util.tree_flatten(model_params_size)[0])
     print('model parameter count:', total_params_size)
-
-
-def generate_weight_decay_mask(params, parent=None):
-    if not isinstance(params, dict):
-        return parent not in ['bias', 'embedding', 'abs_embedding', 'd_0', 'd_1', 'd_2']
-    
-    return {k: generate_weight_decay_mask(v, k) for k, v in params.items()} 
 
 
 def get_learning_rate_fn(config):

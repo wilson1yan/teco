@@ -15,7 +15,7 @@ import jax.numpy as jnp
 from jax.experimental.maps import xmap
 from flax.training import checkpoints
 
-from teco.datasets import Data
+from teco.data import Data
 from teco.models.xmap.train_utils import create_xmap_train_state_spec, \
     shard_train_state, unshard_train_state
 from teco.train_utils import init_model_state, \

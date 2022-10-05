@@ -15,7 +15,7 @@ import jax.numpy as jnp
 from flax.training import checkpoints
 from flax import jax_utils
 
-from teco.datasets import Data
+from teco.data import Data
 from teco.train_utils import init_model_state, \
         get_first_device, ProgressMeter, seed_all
 from teco.utils import flatten, add_border, save_video_grid

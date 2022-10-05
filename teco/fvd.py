@@ -55,11 +55,3 @@ def fvd(video_1, video_2):
   embed_2 = embed(video_2)
   result = calculate_fvd(embed_1, embed_2)
   return result.numpy()
-
-
-if __name__ == '__main__':
-    import numpy as np
-    x = np.random.rand(256, 80, 128, 128, 3)
-    out = fvd_preprocess(x, (224, 224))
-    out = out.numpy()
-    print(out.shape)
