@@ -14,7 +14,7 @@ viz_interval: 100000
 log_interval: 100
 
 # Data
-data_path: "gs://wilson_smae/datasets/encoded_h5py_dataset/minerl_marsh_v2"
+data_path: "TODO"
 eval_seq_len: 300
 seq_len: 300
 image_size: 128
@@ -26,7 +26,7 @@ batch_keys: ["video", "actions"]
 
 # Model
 model: "teco"
-vqvae_ckpt: "/home/wilson/logs/hier_video/minerl_marsh_vqgan_jax"
+vqvae_ckpt: "TODO"
 
 encoder: # encoder / decoder are mirrored, with decoder depths reversed
   depths: [256, 512] # 16x16 -> 8x8

@@ -28,12 +28,14 @@ pip install -e .
 ## Datasets
 You can uses the scripts in `scripts/download` to download each dataset. Data is stored in Internet Archive, and you will need to first install the pip package: `pip install internetarchive`
 
-We offer the following datasets (note that you will require 2x the dataset size due to downloading and untar-ing):
+We offer the following datasets (note that you will require 2x the dataset size due to downloading and untar-ing). :
 * `dmlab.sh`: DMLab dataset with 40k trajectories of 300 64 x 64 frames - 54GB
 * `dmlab_encoded.sh`: DMLab dataset pre-encoded using the VQ-GAN - 5.4GB
 * `minecraft.sh`: Minecraft dataset with 200k trajectories of 300 128 x 128 frames - 210GB
 * `minecraft_encoded.sh`: Minecraft dataset pre-encoded using the VQ-GAN - 27GB
 * `kinetics600_encoded.sh`: Kinetics-600 pre-encoded using the VQ-GAN - 42GB
+
+Run each script with: `sh scripts/download/<script>.sh <download_dir>`
 
 Habitat download links coming soon.
 
@@ -41,13 +43,17 @@ You can collect your own data through the following links for [DMLab](https://gi
 
 ## Pretrained VQ-GANs
 
-[Coming Soon]
+Pretrained VQ-GAN checkpoints for each dataset can be found [here](https://drive.google.com/drive/folders/10hAqVjoxte9OxYc7WIih_5OtwbdOxKoi?usp=sharing)
+
+This repo does not have VQ-GAN training code, as we used [the original repo](https://github.com/CompVis/taming-transformers) and converted checkpoints from PyTorch to Jax.
 
 ## Pretrained TECO
 
 [Coming Soon]
 
 ## Training
+Before training, you will need to update the paths to the corresponding configs files to point to your dataset and VQ-GAN directories.
+
 For standard training, run:
 ```python scripts/train.py -o <output_folder_name> -c <path_to_config>```
 

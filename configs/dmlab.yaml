@@ -5,8 +5,8 @@ cache: true
 batch_size: 32
 num_workers: 4
 lr: 0.0001
-weight_decay: 0.00001
 lr_schedule: "cosine"
+weight_decay: 0.00001
 total_steps: 1000000
 warmup_steps: 5000
 save_interval: 100000
@@ -14,7 +14,7 @@ viz_interval: 100000
 log_interval: 100
 
 # Data
-data_path: "gs://wilson_smae/datasets/encoded_h5py_dataset/dl_maze"
+data_path: "TODO"
 eval_seq_len: 300
 seq_len: 300
 image_size: 64
@@ -26,7 +26,7 @@ batch_keys: ["video", "actions"]
 
 # Model
 model: "teco"
-vqvae_ckpt: "/home/wilson/logs/hier_video/dl_maze_jax"
+vqvae_ckpt: "TODO"
 
 encoder: # encoder / decoder are mirrored, with decoder depths reversed
   depths: [256, 512] # 16x16 -> 8x8
