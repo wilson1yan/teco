@@ -4,7 +4,7 @@ pyyaml
 moviepy
 wandb
 av
-flax
+flax==0.6.1
 gcsfs==2022.7.1
 tensorflow_cpu
 tensorflow_datasets
