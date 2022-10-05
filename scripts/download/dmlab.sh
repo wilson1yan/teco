@@ -10,6 +10,6 @@ do
     rmdir dmlab_dataset_$i
 done
 
-cat dmlab.tar.parta* | tar x
+cat dmlab.tar.part* | tar x
 
 rm dmlab.tar.part*

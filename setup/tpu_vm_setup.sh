@@ -9,7 +9,7 @@ git clone git@github.com:wilson1yan/teco
 cd teco
 
 pip install "jax[tpu]" -f https://storage.googleapis.com/jax-releases/libtpu_releases.html
-pip3 install -r tpu_requirements.txt
+pip3 install -r requirements.txt
 pip3 install -e .
 
 touch $HOME/init.sh
