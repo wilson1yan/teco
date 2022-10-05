@@ -1,5 +1,4 @@
 seed: 1
-download: true
 cache: true
 
 # Training
@@ -15,7 +14,7 @@ viz_interval: 100000
 log_interval: 100
 
 # Data
-data_path: "encoded_h5py_dataset/dl_maze"
+data_path: "gs://wilson_smae/datasets/encoded_h5py_dataset/dl_maze"
 eval_seq_len: 300
 seq_len: 300
 image_size: 64
