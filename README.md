@@ -11,7 +11,8 @@ Generating long, temporally consistent video remains an open challenge in video 
 Install Jax
 ```
 # For GPU
-conda -y install cudatoolkit=11.3 cudnn
+conda create -n teco python=3.8
+conda install -y cudatoolkit=11.3 cudnn
 pip install --upgrade "jax[cuda]==0.3.21" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 
 # For TPU

@@ -6,7 +6,6 @@ import argparse
 import yaml
 import pickle
 import wandb
-import gcsfs
 import glob
 
 import jax
@@ -25,31 +24,15 @@ from teco.models import get_model, sample
 from teco.models.xmap.mesh import default_mesh
 
 
-GCS_LOG_DIR = 'gs://wilson_smae/logs/hier_video/'
-
-
 def main():
     global model, model_shard
     rng = random.PRNGKey(config.seed)
     rng, init_rng = random.split(rng)
     seed_all(config.seed)
 
-    fs = gcsfs.GCSFileSystem(project='rll-tpus')
-    # Download VQ-GAN or AE if needed
-    if hasattr(config, 'vqvae_ckpt'):
-        gcs_path = osp.join(GCS_LOG_DIR, osp.basename(config.vqvae_ckpt))
-        fs.get(gcs_path, config.vqvae_ckpt, recursive=True)
-
-    # Check if need to load previous checkpoint
-    gcs_path = osp.join(GCS_LOG_DIR, config.run_id)
-
     files = glob.glob(osp.join(config.output_dir, 'checkpoints', '*'))
     if len(files) > 0:
         print('Found previous checkpoints', files)
-        config.ckpt = config.output_dir
-    elif fs.exists(gcs_path):
-        print('Found previous checkpoint at', gcs_path)
-        fs.get(gcs_path, config.output_dir, recursive=True)
         config.ckpt = config.output_dir
     else:
         config.ckpt = None
@@ -99,23 +82,11 @@ def main():
             if is_master_process:
                 state_ = unshard_train_state(model_shard, jax.device_get(state))
                 save_path = checkpoints.save_checkpoint(ckpt_dir, state_, state_.step, keep=1)
-
-                if args.sync_freq and os.environ.get('DEBUG') != '1':
-                    gcs_path = osp.join(GCS_LOG_DIR, osp.basename(config.output_dir))
-                    if fs.exists(gcs_path):
-                        fs.rm(gcs_path, recursive=True)
-                    fs.put(config.output_dir, GCS_LOG_DIR, recursive=True)
                 print('Saved checkpoint to', save_path)
                 del state_ # Needed to prevent a memory leak bug
         if iteration % config.viz_interval == 0:
             visualize(model_shard, iteration, state_spec, state, test_loader)
         iteration += 1
-
-    # Final sync with GCS
-    gcs_path = osp.join(GCS_LOG_DIR, osp.basename(config.output_dir))
-    if fs.exists(gcs_path):
-        fs.rm(gcs_path, recursive=True)
-    fs.put(config.output_dir, GCS_LOG_DIR, recursive=True)
 
 
 def train_step(batch, state, rng):
@@ -216,7 +187,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-o', '--output_dir', type=str, required=True)
     parser.add_argument('-c', '--config', type=str, required=True)
-    parser.add_argument('-s', '--sync_freq', action='store_true')
     args = parser.parse_args()
 
     args.run_id = args.output_dir
@@ -226,8 +196,8 @@ if __name__ == '__main__':
     print(f'JAX local devices: {jax.local_device_count()}')
 
     if not osp.isabs(args.output_dir):
-        if 'DATA_DIR' not in os.environ:
-            raise Exception('DATA_DIR environment variable not set')
+        os.environ['DATA_DIR'] = 'logs'
+        print('DATA_DIR environment variable not set, default to logs/')
         root_folder = os.environ['DATA_DIR']
         args.output_dir = osp.join(root_folder, args.output_dir)
 

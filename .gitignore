@@ -1,3 +1,4 @@
 wandb/
 __pycache__/
 teco.egg-info/
+logs/

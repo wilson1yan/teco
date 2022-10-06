@@ -14,3 +14,5 @@ tensorflow_probability
 tensorflow_hub
 lpips_jax
 numpy
+internetarchive
+gdown
