@@ -74,3 +74,7 @@ For FVD evaluations run
 
 For PSNR, SSIM, and LPISP run
 ```python scripts/compute_metrics.py <path_to_npz>```
+
+## Copyright
+
+THIS SOFTWARE AND/OR DATA WAS DEPOSITED IN THE BAIR OPEN RESEARCH COMMONS REPOSITORY ON 10/6/22.
