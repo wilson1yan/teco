@@ -1,5 +1,5 @@
 seed: 1
-cache: true
+cache: false # caching available only for encoded datasets
 
 # Training
 batch_size: 32
