@@ -18,13 +18,48 @@ def is_tfds_folder(path):
         return osp.exists(path)
 
 
+def load_npz(config, split, num_ds_shards, ds_shard_id):
+    folder = osp.join(config.data_path, split, '*', '*.npz')
+    if folder.startswith('gs://'):
+        fns = tf.io.gfile.glob(folder)
+    else:
+        fns = list(glob.glob(folder))
+    fns = np.array_split(fns, num_ds_shards)[ds_shard_id].tolist()
+
+    def read(path):
+        path = path.decode('utf-8')
+        if path.startswith('gs://'):
+            path = io.BytesIO(file_io.FileIO(path, 'rb').read())
+        data = np.load(path)
+        video, actions = data['video'].astype(np.float32), data['actions'].astype(np.int32)
+        video = 2 * (video / 255.) - 1 
+        return video, actions
+
+    dataset = tf.data.Dataset.from_tensor_slices(fns)
+    dataset = dataset.map(
+        lambda item: tf.numpy_function(
+            read,
+            [item],
+            [tf.float32, tf.int32]
+        ),
+        num_parallel_calls=tf.data.experimental.AUTOTUNE
+    )
+    dataset = dataset.map(
+        lambda video, actions: dict(video=video, actions=actions),
+        num_parallel_calls=tf.data.experimental.AUTOTUNE
+    )
+    
+    return dataset
+
+
 def load_video(config, split, num_ds_shards, ds_shard_id):
     folder = osp.join(config.data_path, split, '*', '*.mp4')
     if folder.startswith('gs://'):
         fns = tf.io.gfile.glob(folder)
     else:
         fns = list(glob.glob(folder))
-    fns = np.array_split(num_ds_shards, ds_shard_id).tolist()
+    fns = np.array_split(fns, num_ds_shards)[ds_shard_id].tolist()
+    print(len(fns))
 
     # TODO resizing video
     def read(path):
@@ -98,7 +133,10 @@ class Data:
         split_name = 'train' if train else 'test'
 
         if not is_tfds_folder(self.config.data_path):
-            dataset = load_video(self.config, split_name, num_ds_shards, ds_shard_id)
+            if 'dmlab' in self.config.data_path:
+                dataset = load_npz(self.config, split_name, num_ds_shards, ds_shard_id)
+            else:
+                dataset = load_video(self.config, split_name, num_ds_shards, ds_shard_id)
         else:
             seq_len = self.config.seq_len
             def process(features):
@@ -115,14 +153,16 @@ class Data:
             dataset = tfds.load(osp.basename(self.config.data_path), split=split,
                                 data_dir=osp.dirname(self.config.data_path))
 
-        if self.config.cache:
-            dataset = dataset.cache()
+            # caching only for pre-encoded since raw video will probably
+            # run OOM on RAM
+            if self.config.cache:
+                dataset = dataset.cache()
 
-        options = tf.data.Options()
-        options.threading.private_threadpool_size = 48
-        options.threading.max_intra_op_parallelism = 1
-        dataset = dataset.with_options(options)
-        dataset = dataset.map(process)
+            options = tf.data.Options()
+            options.threading.private_threadpool_size = 48
+            options.threading.max_intra_op_parallelism = 1
+            dataset = dataset.with_options(options)
+            dataset = dataset.map(process)
 
         if repeat:
             dataset = dataset.repeat()
