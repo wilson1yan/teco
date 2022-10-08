@@ -35,7 +35,8 @@ def main(args):
         kwargs['open_loop_ctx'] = args.open_loop_ctx
     
     model, state, config = load_ckpt(args.ckpt, return_config=True, 
-                                     **kwargs, data_path=args.data_path)
+                                     **kwargs, data_path=args.data_path,
+                                     vqvae_ckpt=args.vqvae_ckpt)
 
     if args.include_actions:
         assert config.use_actions
@@ -71,6 +72,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-c', '--ckpt', type=str, required=True)
+    parser.add_argument('-v', '--vqvae_ckpt', type=str, required=True)
     parser.add_argument('-d', '--data_path', type=str, required=True)
     parser.add_argument('-n', '--batch_size', type=int, default=32)
     parser.add_argument('-l', '--seq_len', type=int, default=None)

@@ -59,7 +59,6 @@ def load_video(config, split, num_ds_shards, ds_shard_id):
     else:
         fns = list(glob.glob(folder))
     fns = np.array_split(fns, num_ds_shards)[ds_shard_id].tolist()
-    print(len(fns))
 
     # TODO resizing video
     def read(path):
@@ -177,7 +176,7 @@ class Data:
                 x = x._numpy()
                 x = x.reshape((num_data_local, -1) + x.shape[1:])
                 return x
-            xs = jax.tree_map(_prepare, xs)
+            xs = jax.tree_util.tree_map(_prepare, xs)
             return xs
 
         iterator = map(prepare_tf_data, dataset)
