@@ -50,7 +50,9 @@ This repo does not have VQ-GAN training code, as we used [the original repo](htt
 
 ## Pretrained TECO
 
-[Coming Soon]
+Pretrained TECO checkpoints for each dataset can be found [here](https://drive.google.com/drive/folders/1k1O31RfE9_I_cvwQLENpYqsiAoVM8YQ3?usp=sharing)
+
+The Kinetics-600 checkpoint will be added soon (by 10/16)
 
 ## Training
 Before training, you will need to update the paths to the corresponding configs files to point to your dataset and VQ-GAN directories.
