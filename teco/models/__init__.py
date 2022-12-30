@@ -2,6 +2,7 @@ import jax.numpy as jnp
 
 from .sample import sample
 from .vqgan import VQGAN
+from .vae import VAE
 from .teco import TECO
 from .xmap.teco import TECOShard
 
@@ -28,7 +29,7 @@ def load_vqvae(ckpt_path, need_encode=True):
     return dict(encode=video_encode, decode=video_decode, lookup=codebook_lookup), argparse.Namespace(latent_shape=model.latent_shape, embedding_dim=model.embedding_dim, n_codes=model.n_codes)
 
 
-def load_ckpt(ckpt_path, training=False, replicate=True, return_config=False, 
+def load_ckpt(ckpt_path, replicate=True, return_config=False, 
               default_if_none=dict(), need_encode=None, **kwargs):
     import os.path as osp
     import pickle
@@ -77,6 +78,8 @@ def get_model(config, need_encode=None, xmap=False, **kwargs):
 
     if config.model == 'vqgan':
         model = VQGAN(config, **kwargs)
+    elif config.model == 'autoencoder':
+        model = VAE(config, **kwargs)
     elif config.model == 'teco':
         model = TECO(config, **kwargs)
         if xmap:
