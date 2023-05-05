@@ -54,11 +54,11 @@ def sample(sample_model, state, video, actions, seed=0, state_spec=None):
     if use_xmap:
         p_observe = xmap(_observe, in_axes=(state_spec, ('data', ...)),
                         out_axes=('data', ...),
-                        axis_resources={'data': 'dp', 'model': 'mp'})
+                        axis_resources={'data': 'data', 'model': 'model'})
         p_imagine = xmap(_imagine, in_axes=(state_spec, ('data', ...), ('data', ...),
                                             ('data', ...), (...,), ('data', ...)),
                         out_axes=('data', ...),
-                        axis_resources={'data': 'dp', 'model': 'mp'})
+                        axis_resources={'data': 'data', 'model': 'model'})
     else:
         p_observe = jax.pmap(_observe)
         p_imagine = jax.pmap(_imagine, in_axes=(0, 0, 0, 0, None, 0))

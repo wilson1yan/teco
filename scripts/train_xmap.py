@@ -67,7 +67,7 @@ def main():
 
     move_params = xmap(
         lambda state: state, in_axes=(state_spec,), out_axes=state_spec,
-        axis_resources={'data': 'dp', 'model': 'mp'}
+        axis_resources={'data': 'data', 'model': 'model'}
     )
     state = move_params(shard_train_state(model_shard, state))
     iteration = int(state.step)
@@ -128,7 +128,7 @@ def train(iteration, state_spec, state, train_loader, schedule_fn, rngs):
     p_train_step = xmap(
         train_step, in_axes=[('data', ...), state_spec, ('data', ...)],
         out_axes=(state_spec, (...,), ('data', ...)),
-        axis_resources={'data': 'dp', 'model': 'mp'}
+        axis_resources={'data': 'data', 'model': 'model'}
     )
 
     end = time.time()
