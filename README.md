@@ -1,4 +1,4 @@
-# Temporally Consistent Video Transformer for Long-Term Video Prediction
+# Temporally Consistent Transformers for Video Generation
 
 [[Paper]](https://arxiv.org/abs/2210.02396)[[Website]](https://wilson1yan.github.io/teco/index.html)
 
