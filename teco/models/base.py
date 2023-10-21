@@ -3,6 +3,7 @@ from flax import linen as nn
 import jax
 import jax.numpy as jnp
 import optax
+import numpy as np
 
 
 def constant(value, dtype=jnp.float32):
@@ -10,6 +11,172 @@ def constant(value, dtype=jnp.float32):
         dtype = jax.dtypes.canonicalize_dtype(dtype)
         return jnp.full(shape, value, dtype=dtype)
     return init
+
+
+class Encoder(nn.Module):
+    """
+    Encoder of the input data from Weather4Cast competition.
+    Contains 3 heads: IR, WV and VR.
+    The input to the encoder should follow the structure: (N x T x H x W x C).
+    The batch and time dimensions are collapsed into one.
+    The output of the encoder follows the shape: (N x T x 3 x embd_size).
+    """
+    num_blocks: int
+    filters: list
+    embeddings: int
+
+    @nn.compact
+    def __call__(self, x, train: bool):
+        # NOTE: Assume the input sequence follows the channel structure in the weather4cast repository.
+        # infra-red
+        ir_input = x[:, :, :, :, :7].reshape(-1, x.shape[2], x.shape[3], 7)
+        # visible
+        vr_input = x[:, :, :, :, 7:9].reshape(-1, x.shape[2], x.shape[3], 2)
+        # water vapor
+        wv_input = x[:, :, :, :, 9:].reshape(-1, x.shape[2], x.shape[3], 2)
+
+        ir_embeddings = EncoderHead(num_blocks=self.num_blocks, filters=self.filters, embeddings=self.embeddings)(ir_input, train)
+        vr_embeddings = EncoderHead(num_blocks=self.num_blocks, filters=self.filters, embeddings=self.embeddings)(vr_input, train)
+        wv_embeddings = EncoderHead(num_blocks=self.num_blocks, filters=self.filters, embeddings=self.embeddings)(wv_input, train)
+
+        # Concatenate embeddings.
+        print(ir_embeddings.shape)
+        embeddings = np.concatenate((ir_embeddings, vr_embeddings, wv_embeddings), axis=1)
+        print(embeddings.shape)
+        # Bring back time dimension.
+        embeddings = embeddings.reshape(x.shape[0], x.shape[1], 3, self.embeddings)
+        return embeddings
+
+class Decoder(nn.Module):
+    """
+    Decoder of the TECO embeddings from Weather4Cast competition.
+    The input to the decoder should follow the structure: (N x T x embd)
+    The batch and time dimensions are collapsed into one.
+    The output of the decoder follows the shape: ((N x T) x H x W x C).
+    """
+    num_blocks: int
+    filters: int
+    embeddings: int
+    shape: tuple
+
+    @nn.compact
+    def __call__(self, x, train: bool):
+        # Collapse the first 2 dims.
+        x = x.reshape(-1, x.shape[2])
+
+        ir_bands = DecoderHead(channels=7, num_blocks=self.num_blocks, filters=self.filters, embeddings=self.embeddings,
+                shape=self.shape)(x, train)
+        vr_bands = DecoderHead(channels=2, num_blocks=self.num_blocks, filters=self.filters, embeddings=self.embeddings,
+                shape=self.shape)(x, train)
+        wv_bands = DecoderHead(channels=2, num_blocks=self.num_blocks, filters=self.filters, embeddings=self.embeddings,
+                shape=self.shape)(x, train)
+
+        # Concatenate the channels.
+
+        reconstruction = np.concatenate((ir_bands, vr_bands, wv_bands), axis=-1)
+        return reconstruction
+
+
+
+
+class EncoderHead(nn.Module):
+    """
+    Encoder head from specific bands.
+    Composed of multiple EncoderHead blocks and a projection layer
+    """
+    num_blocks: int
+    filters: list
+    embeddings: int
+
+    @nn.compact
+    def __call__(self, x, train: bool):
+        for i in range(self.num_blocks):
+            x = HeadBlock(self.filters[i])(x, train)
+
+        # flatten input
+        x = x.reshape(x.shape[0], -1)
+        # projection layer to the embeddings dimensions
+        x = nn.Dense(self.embeddings)(x)
+        x = nn.relu(x)
+
+        return x
+
+class DecoderHead(nn.Module):
+    """
+    Decoder head from taking embeddings from TECO.
+    """
+    channels: int
+    num_blocks: int
+    filters: list
+    embeddings: int
+    shape: tuple
+
+    @nn.compact
+    def __call__(self, x, train: bool):
+
+        # Do not include batch and time dimensions.
+        x = nn.Dense(np.prod(self.shape[1:]))(x)
+        x = nn.relu(x)
+        x = x.reshape(self.shape)
+        for filters in reversed(self.filters):
+            x = DecoderHeadBlock(filters)(x, train)
+            x = jax.image.resize(x, (x.shape[0], 2 * x.shape[1], 2 * x.shape[2], x.shape[3]),
+                                 "bilinear")
+
+        x = nn.Conv(self.channels, (3, 3))(x)
+        x = nn.relu(x)
+        return x
+
+
+class DecoderHeadBlock(nn.Module):
+    """
+    One Encoder Head Block with the following structure:
+    1. 1 conv layer
+    2. ReLU
+    3. BatchNorm
+    x2
+
+    4. 2x2 max pooling with (2, 2) stride
+    """
+    filters: int
+
+    @nn.compact
+    def __call__(self, x, train: bool):
+        x = nn.Conv(self.filters, (3, 3))(x)
+        x = nn.relu(x)
+        x = nn.BatchNorm(use_running_average=not train)(x)
+
+        x = nn.Conv(self.filters, (3, 3))(x)
+        x = nn.relu(x)
+        x = nn.BatchNorm(use_running_average=not train)(x)
+
+        return x
+
+
+class HeadBlock(nn.Module):
+    """
+    One Encoder Head Block with the following structure:
+    1. 1 conv layer
+    2. ReLU
+    3. BatchNorm
+    x2
+
+    4. 2x2 max pooling with (2, 2) stride
+    """
+    filters: int
+
+    @nn.compact
+    def __call__(self, x, train: bool):
+        x = nn.Conv(self.filters, (3, 3))(x)
+        x = nn.relu(x)
+        x = nn.BatchNorm(use_running_average=not train)(x)
+
+        x = nn.Conv(self.filters, (3, 3))(x)
+        x = nn.relu(x)
+        x = nn.BatchNorm(use_running_average=not train)(x)
+
+        x = nn.max_pool(x, (2, 2), (2, 2))
+        return x
 
 
 class ResNetEncoder(nn.Module):
